@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>管理后台 - 装备商城</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 左侧菜单 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>装备商城后台</h2>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="menu-item active">
+                    <a href="index.html">首页</a>
+                </li>
+                <li class="menu-item">
+                    <a href="product/list.html">商品管理</a>
+                </li>
+                <li class="menu-item">
+                    <a href="category/list.html">分类管理</a>
+                </li>
+                <li class="menu-item">
+                    <a href="order/list.html">订单管理</a>
+                </li>
+                <li class="menu-item">
+                    <a href="user/list.html">用户管理</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 右侧内容 -->
+        <div class="main-content">
+            <div class="header">
+                <div class="header-title">系统概览</div>
+                <div class="header-actions">
+                    <span id="adminName"></span>
+                    <a href="#" onclick="logout()" class="btn-logout">退出</a>
+                </div>
+            </div>
+
+            <div class="dashboard">
+                <div class="stat-cards">
+                    <div class="stat-card">
+                        <div class="stat-title">总订单数</div>
+                        <div class="stat-value" id="totalOrders">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">总商品数</div>
+                        <div class="stat-value" id="totalProducts">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">总用户数</div>
+                        <div class="stat-value" id="totalUsers">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">总销售额</div>
+                        <div class="stat-value" id="totalSales">￥0</div>
+                    </div>
+                </div>
+
+                <div class="recent-orders">
+                    <h3>最近订单</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>订单号</th>
+                                <th>用户</th>
+                                <th>金额</th>
+                                <th>状态</th>
+                                <th>时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentOrdersList">
+                            <!-- 最近订单将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 检查管理员登录状态
+        function checkAdminLogin() {
+            const admin = JSON.parse(localStorage.getItem('admin'));
+            if (!admin) {
+                window.location.href = 'login.html';
+                return;
+            }
+            document.getElementById('adminName').textContent = admin.username;
+        }
+
+        // 加载统计数据
+        function loadStats() {
+            // 加载订单总数
+            fetch('http://localhost:8082/api/admin/stats/orders')
+            .then(response => response.json())
+            .then(data => {
+                if(data.code === 200) {
+                    document.getElementById('totalOrders').textContent = data.data;
+                }
+            });
+
+            // 加载商品总数
+            fetch('http://localhost:8082/api/admin/stats/products')
+            .then(response => response.json())
+            .then(data => {
+                if(data.code === 200) {
+                    document.getElementById('totalProducts').textContent = data.data;
+                }
+            });
+
+            // 加载用户总数
+            fetch('http://localhost:8082/api/admin/stats/users')
+            .then(response => response.json())
+            .then(data => {
+                if(data.code === 200) {
+                    document.getElementById('totalUsers').textContent = data.data;
+                }
+            });
+
+            // 加载总销售额
+            fetch('http://localhost:8082/api/admin/stats/sales')
+            .then(response => response.json())
+            .then(data => {
+                if(data.code === 200) {
+                    document.getElementById('totalSales').textContent = '￥' + data.data;
+                }
+            });
+        }
+
+        // 加载最近订单
+        function loadRecentOrders() {
+            fetch('http://localhost:8082/api/admin/stats/orders/recent')
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if(data.code === 200) {
+                    const html = data.data.map(order => `
+                        <tr>
+                            <td>${order.orderNo}</td>
+                            <td>${order.username}</td>
+                            <td>￥${order.totalAmount}</td>
+                            <td>${getOrderStatus(order.status)}</td>
+                            <td>${formatDateTime(order.createTime)}</td>
+                        </tr>
+                    `).join('');
+                    document.getElementById('recentOrdersList').innerHTML = html;
+                }
+            });
+        }
+
+        // 格式化订单状态
+        function getOrderStatus(status) {
+            switch(status) {
+                case 0: return '待支付';
+                case 1: return '已支付';
+                case 2: return '已取消';
+                default: return '未知状态';
+            }
+        }
+
+        // 格式化日期时间
+        function formatDateTime(dateTimeStr) {
+            return new Date(dateTimeStr).toLocaleString();
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('admin');
+            window.location.href = 'login.html';
+        }
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminLogin();
+            loadStats();
+            loadRecentOrders();
+        });
+    </script>
+</body>
+</html> 
